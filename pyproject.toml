@@ -1,7 +1,7 @@
 [project]
 name = "skeleton-rag"
 version = "0.1.0"
-description = "Add your description here"
+description = "A typed context-bound LLM answerer with grounded citations and structured output."
 readme = "README.md"
 authors = [
     { name = "Ayubur Rahman Tashdid", email = "tashdidr3@gmail.com" }
@@ -9,12 +9,18 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "openai>=3.13.0",
+    "pydantic>=2.13.5",
     "python-dotenv>=1.2.3",
 ]
 
 [project.scripts]
-skeleton-rag = "skeleton_rag:main"
+skeleton-rag = "skeleton_rag.main:main"
 
 [build-system]
 requires = ["uv_build>=0.12.7,<0.13.0"]
 build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]

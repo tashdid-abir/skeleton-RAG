@@ -1,28 +1,38 @@
 # Skeleton RAG
 
-A learning project for building a context-bound LLM answerer before adding
-document retrieval. It answers questions from supplied university examination
-policy passages, refuses unsupported questions, and cites the passage IDs used
-as evidence.
+A learning project for the generation half of a RAG system. The application
+answers a question only from passages supplied by the caller, returns a typed
+response, cites passage IDs, and refuses unsupported or conflicting questions.
 
-## Current milestone
+This is not full RAG yet: there is no PDF ingestion, chunking, embedding, or
+retrieval. Those stages will be added in later weeks.
 
-The current script demonstrates the first building block of a RAG system:
+## Current capabilities
+
+- OpenRouter-hosted LLM provider selected through environment variables
+- JSON-schema structured LLM output
+- Pydantic validation for answer status, answer text, and citations
+- `answered` and `unanswerable` response states
+- One bounded repair attempt for invalid model output
+- Custom exceptions for timeout, rate-limit, connection, request, and invalid-response failures
+- Provider `Protocol`, real OpenRouter provider, and deterministic fake provider
+- Offline tests using the fake provider
+
+## Project structure
 
 ```text
-Policy passages + question -> grounded answer + citations
+.
+├── src/skeleton_rag/
+│   ├── clients/       # Provider contract and implementations
+│   ├── core/          # Application exceptions
+│   ├── schemas/       # Pydantic response models
+│   ├── services/      # Context-bound answering workflow
+│   └── main.py        # Package command entry point
+├── tests/             # Offline unit tests
+├── .env.example       # Safe environment-variable template
+├── pyproject.toml
+└── uv.lock
 ```
-
-It currently:
-
-- sends requests to an OpenRouter-hosted LLM;
-- provides manually selected policy passages as context;
-- instructs the model to use that context only;
-- returns `unanswerable` when the context does not support an answer; and
-- asks the model to cite supporting passage IDs such as `P3`.
-
-This is not retrieval-augmented generation yet: passages are supplied manually.
-PDF extraction, chunking, embeddings, and retrieval will be added later.
 
 ## Setup
 
@@ -32,53 +42,50 @@ PDF extraction, chunking, embeddings, and retrieval will be added later.
 uv sync
 ```
 
-### 2. Create `.env`
+### 2. Configure environment variables
 
-Create a file named `.env` in the project root:
+Copy the template:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Then replace the placeholder API key in `.env`:
 
 ```env
-OPENROUTER_API_KEY=your_openrouter_api_key
+OPENROUTER_API_KEY=your_actual_openrouter_api_key
 OPENROUTER_MODEL=dots-studio/dots-3-note-preview:free
 ```
 
-`.env` is ignored by Git. Never commit or share the API key.
+`.env` is ignored by Git. Never commit or share an API key.
 
-### 3. Run the example
+## Run the example
+
+```powershell
+uv run skeleton-rag
+```
+
+The current example asks whether a student may leave an examination hall after
+30 minutes. The result is structured JSON containing the answer, citations,
+latency, and available token usage.
+
+You can also use the compatibility launcher:
 
 ```powershell
 uv run python main.py
 ```
 
-The sample question asks whether a student may leave an examination hall after
-30 minutes. The answer should be supported by passage `P3`.
+## Run tests
 
-## Example result
-
-```text
-No. You cannot leave the examination hall within the first 45 minutes.
-Citations: P3
+```powershell
+uv run pytest
 ```
 
-For a question that the supplied passages do not answer, the expected result is:
+The tests use `FakeProvider`, so they do not require an API key or internet
+access.
 
-```text
-unanswerable
-```
+## Current limitations
 
-## Project structure
-
-```text
-.
-├── main.py                 # Current context-bound answering experiment
-├── src/skeleton_rag/       # Package location for the evolving application
-├── pyproject.toml          # Project metadata and dependencies
-└── .env                    # Local API key and model selection; not committed
-```
-
-## Next steps
-
-1. Return structured answers validated with Pydantic.
-2. Handle malformed model output and provider failures.
-3. Add a provider contract and deterministic test provider.
-4. Test grounded, unsupported, conflicting, and adversarial-context questions.
-5. Replace manually supplied passages with a document retrieval pipeline.
+- Passages are manually supplied by the caller.
+- Citations have a validated shape, but citation IDs are not yet checked against a caller-provided passage-ID allowlist.
+- The configured free preview model may be withdrawn or changed by its provider; choose another OpenRouter model in `.env` if needed.
